@@ -1,17 +1,18 @@
 const std = @import("std");
 const rl = @import("raylib");
 
-const player_module = @import("player.zig");
+const player = @import("player.zig");
+const settings = @import("settings.zig");
 
 // aliases
-const Player = player_module.Player;
+const Player = player.Player;
 
 pub fn main() !void {
-    rl.initWindow(1280, 720, "Zigray");
+    rl.initWindow(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT, "Zigray");
     defer rl.closeWindow();
 
     rl.setExitKey(rl.KeyboardKey.null); // No close key
-    rl.setTargetFPS(60);
+    rl.setTargetFPS(settings.FPS);
 
     var player1 = Player.init();
 
@@ -21,7 +22,7 @@ pub fn main() !void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(rl.Color.black);
+        rl.clearBackground(settings.BACKGROUND_COLOR);
         player1.draw();
     }
 }

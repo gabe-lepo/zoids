@@ -1,5 +1,6 @@
 const rl = @import("raylib");
 const utils = @import("utils.zig");
+const settings = @import("settings.zig");
 
 const Shapes = union(enum) {
     rectangle: rl.Rectangle,
@@ -46,6 +47,12 @@ pub const Player = struct {
             .x = (position.x + (0.5 * width)),
             .y = (position.y + (0.5 * height)),
         };
+        const player_color = utils.Colors.initFromRGB(utils.Colors.RGB{
+            .r = settings.BACKGROUND_COLOR.r,
+            .g = settings.BACKGROUND_COLOR.g,
+            .b = settings.BACKGROUND_COLOR.b,
+            .a = settings.BACKGROUND_COLOR.a,
+        }).complimentary();
 
         return Player{
             .position = position,
@@ -59,7 +66,7 @@ pub const Player = struct {
                 },
             },
             .collideable = true,
-            .color = rl.Color.sky_blue,
+            .color = player_color,
             .label = "Player",
 
             .velocity = rl.Vector2.zero(),
