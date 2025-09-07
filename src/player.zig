@@ -2,7 +2,7 @@ const rl = @import("raylib");
 const utils = @import("utils.zig");
 const settings = @import("settings.zig");
 
-const Shapes = union(enum) {
+pub const Shapes = union(enum) {
     rectangle: rl.Rectangle,
     circle: struct {
         center: rl.Vector2,
