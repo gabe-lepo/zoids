@@ -39,14 +39,6 @@ pub const GameState = struct {
         return state;
     }
 
-    // pub fn deinit(self: *Self) void {
-    //     _ = self;
-    //     @compileError("GameState.deinit is deprecated!\n");
-    //
-    //     // self.spatial_grid.deinit();
-    //     // self.nearby_boids_buf.deinit(self.allocator);
-    // }
-
     pub fn initBoids(self: *Self) void {
         for (self.boids_arr[0..self.active_boid_count]) |*boid| {
             boid.* = boids.Boid.initRandom();
@@ -67,13 +59,13 @@ pub const GameState = struct {
         self.initBoids();
     }
 
-    pub fn update(self: *Self) !void {
+    pub fn update(self: *Self) void {
         if (self.paused) return;
 
         // Clear and rebuild spatial grid
         self.spatial_grid.clear();
         for (0..self.active_boid_count) |i| {
-            try self.spatial_grid.addBoid(i, self.boids_arr[i].position);
+            self.spatial_grid.addBoid(i, self.boids_arr[i].position);
         }
 
         // Update each boid using only nearby boids

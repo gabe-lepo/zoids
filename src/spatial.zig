@@ -1,11 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
 const settings = @import("settings.zig");
+const game = @import("game.zig");
 
 pub const SpatialGrid = struct {
-    // PERF:
-    // Cell size needs to be limited to the largest flock behavior radius size
-    // uncomment compile log in the init to confirm
     pub const CELL_SIZE: f32 = @max(
         settings.BoidConfig.ALIGNMENT_RADIUS * 2.0,
         settings.BoidConfig.COHESION_RADIUS,
@@ -13,7 +11,17 @@ pub const SpatialGrid = struct {
     );
     pub const GRID_WIDTH: usize = @intFromFloat(@ceil(settings.WindowConfig.WIDTH / CELL_SIZE));
     pub const GRID_HEIGHT: usize = @intFromFloat(@ceil(settings.WindowConfig.HEIGHT / CELL_SIZE));
-    const MAX_BOIDS_PER_CELL: usize = 64;
+    // FIX:
+    // PERF:
+    pub const MAX_BOIDS_PER_CELL: usize = blk: {
+        const total_boids = settings.BoidConfig.MAX_BOIDS;
+        const total_cells = GRID_HEIGHT * GRID_WIDTH;
+
+        const avg = (total_boids + total_cells - 1) / total_cells;
+        const clust_f = 4;
+
+        break :blk @max(64, avg * clust_f);
+    };
 
     // Fixed arrays instead of arraylists
     const Cell = struct {
@@ -24,14 +32,14 @@ pub const SpatialGrid = struct {
             self.count = 0;
         }
 
-        fn addBoid(self: *Cell, boid_index: usize) !void {
-            if (self.count >= MAX_BOIDS_PER_CELL) {
-                // FIX: We reach this condition way too often
-                std.debug.print("Cant add boid! Count: {d} more than MAX_BOIDS_PER_CELL: {d}\n", .{ self.count, MAX_BOIDS_PER_CELL });
-                return error.CellOverflow;
+        fn addBoid(self: *Cell, boid_index: usize) void {
+            if (self.count < MAX_BOIDS_PER_CELL) {
+                self.boid_indices[self.count] = boid_index;
+                self.count += 1;
+            } else {
+                // TODO: Ignoring overflow,
+                // exluding additional boids from spatial grid optimization
             }
-            self.boid_indices[self.count] = boid_index;
-            self.count += 1;
         }
 
         fn getBoidIndices(self: *const Cell) []const usize {
@@ -62,17 +70,6 @@ pub const SpatialGrid = struct {
         return grid;
     }
 
-    pub fn deinit(self: *Self) void {
-        _ = self;
-        @compileError("SpatialGrid.deinit is deprecated!\n");
-
-        // for (0..GRID_HEIGHT) |y| {
-        //     for (0..GRID_WIDTH) |x| {
-        //         self.cells[y][x].deinit(self.allocator);
-        //     }
-        // }
-    }
-
     pub fn clear(self: *Self) void {
         for (0..GRID_HEIGHT) |y| {
             for (0..GRID_WIDTH) |x| {
@@ -87,9 +84,9 @@ pub const SpatialGrid = struct {
         return .{ .x = x, .y = y };
     }
 
-    pub fn addBoid(self: *Self, boid_index: usize, position: rl.Vector2) !void {
+    pub fn addBoid(self: *Self, boid_index: usize, position: rl.Vector2) void {
         const coords = getCellCoords(position);
-        try self.cells[coords.y][coords.x].addBoid(boid_index);
+        self.cells[coords.y][coords.x].addBoid(boid_index);
     }
 
     pub fn getNearbyBoids(self: *Self, position: rl.Vector2, nearby_buf: []usize, nearby_count: *usize) void {

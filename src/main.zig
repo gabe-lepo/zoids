@@ -23,13 +23,12 @@ pub fn main() !void {
     rl.setTraceLogLevel(rl.TraceLogLevel.none); // WARN: No raylib logs!
 
     var game_state = try game.GameState.init(allocator);
-    // defer game_state.deinit();
 
     var input_handler = input.InputHandler{};
 
     while (!rl.windowShouldClose()) {
         input_handler.update(&game_state);
-        try game_state.update();
+        game_state.update();
         renderer.Renderer.drawGame(&game_state);
     }
 }

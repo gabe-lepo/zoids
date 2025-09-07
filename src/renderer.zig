@@ -3,6 +3,7 @@ const settings = @import("settings.zig");
 const boids = @import("boids.zig");
 const game = @import("game.zig");
 const spatial = @import("spatial.zig");
+const colorutils = @import("utils.zig").Colors;
 
 pub const Renderer = struct {
     pub fn drawGame(game_state: *game.GameState) void {
