@@ -3,8 +3,8 @@ const rl = @import("raylib");
 pub const WindowConfig = struct {
     pub const TITLE = "Zigray";
     // use f32s not comptime_f, less typecasting
-    pub const WIDTH: f32 = 2560.0 / 2.0;
-    pub const HEIGHT: f32 = 1440.0 / 2.0;
+    pub const WIDTH: f32 = 2560.0;
+    pub const HEIGHT: f32 = 1440.0 - 75.0;
     pub const BACKGROUND_COLOR = rl.Color.black;
     pub const FPS = 60;
     pub const FONT_SIZE = 20;

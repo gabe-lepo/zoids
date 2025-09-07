@@ -19,6 +19,13 @@ fn vector2Random() rl.Vector2 {
     };
 }
 
+// PERF:
+fn distanceSquared(a: rl.Vector2, b: rl.Vector2) f32 {
+    const distance_x = a.x - b.x;
+    const distance_y = a.y - b.y;
+    return distance_x * distance_x + distance_y * distance_y;
+}
+
 // Debug options
 pub const DebugOptions = enum {
     none,
@@ -94,22 +101,26 @@ pub const Boid = struct {
 
     fn separate(self: *const Self, boids: []const Boid) rl.Vector2 {
         var steer = rl.Vector2.zero();
-        var count: i32 = 0;
+        var count: f32 = 0.0;
+        const separation_radius_sq = self.separationRadius * self.separationRadius;
 
         for (boids) |other| {
-            const distance = self.position.distance(other.position);
-            if (distance > 0 and distance < self.separationRadius) {
-                var difference = self.position.subtract(other.position);
-                difference = difference.normalize();
-                difference = difference.scale(1.0 / distance);
+            const dist_sq = distanceSquared(self.position, other.position);
+
+            if (dist_sq > 0 and dist_sq < separation_radius_sq) {
+                const distance = @sqrt(dist_sq);
+                const difference = self.position
+                    .subtract(other.position)
+                    .normalize()
+                    .scale(1.0 / distance);
                 steer = steer.add(difference);
-                count += 1;
+                count += 1.0;
             }
         }
 
-        if (count > 0) {
+        if (count > 0.0) {
             steer = steer
-                .scale(1.0 / @as(f32, @floatFromInt(count)))
+                .scale(1.0 / count)
                 .normalize()
                 .scale(self.maxSpeed)
                 .subtract(self.velocity);
@@ -121,19 +132,20 @@ pub const Boid = struct {
 
     fn alignment(self: *const Self, boids: []const Boid) rl.Vector2 {
         var sum = rl.Vector2.zero();
-        var count: i32 = 0;
+        var count: f32 = 0.0;
+        const alignment_radius_sq = self.alignmentRadius * self.alignmentRadius;
 
         for (boids) |other| {
-            const distance = self.position.distance(other.position);
-            if (distance > 0 and distance < self.alignmentRadius) {
+            const dist_sq = distanceSquared(self.position, other.position);
+            if (dist_sq > 0 and dist_sq < alignment_radius_sq) {
                 sum = sum.add(other.velocity);
-                count += 1;
+                count += 1.0;
             }
         }
 
-        if (count > 0) {
+        if (count > 0.0) {
             sum = sum
-                .scale(1.0 / @as(f32, @floatFromInt(count)))
+                .scale(1.0 / count)
                 .normalize()
                 .scale(self.maxSpeed);
             var steer = sum.subtract(self.velocity);
@@ -146,18 +158,19 @@ pub const Boid = struct {
 
     fn cohesion(self: *const Self, boids: []const Boid) rl.Vector2 {
         var sum = rl.Vector2.zero();
-        var count: i32 = 0;
+        var count: f32 = 0.0;
+        const cohesion_radius_sq = self.cohesionRadius * self.cohesionRadius;
 
         for (boids) |other| {
-            const distance = self.position.distance(other.position);
-            if (distance > 0 and distance < self.cohesionRadius) {
+            const dist_sq = distanceSquared(self.position, other.position);
+            if (dist_sq > 0 and dist_sq < cohesion_radius_sq) {
                 sum = sum.add(other.position);
-                count += 1;
+                count += 1.0;
             }
         }
 
-        if (count > 0) {
-            sum = sum.scale(1.0 / @as(f32, @floatFromInt(count)));
+        if (count > 0.0) {
+            sum = sum.scale(1.0 / count);
             return self.seek(sum);
         } else {
             return rl.Vector2.zero();
