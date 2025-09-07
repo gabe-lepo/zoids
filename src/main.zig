@@ -6,6 +6,11 @@ const input = @import("input.zig");
 const renderer = @import("renderer.zig");
 
 pub fn main() !void {
+    //alloc boilerplate
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
     rl.initWindow(
         @as(i32, @intFromFloat(settings.WindowConfig.WIDTH)),
         @as(i32, @intFromFloat(settings.WindowConfig.HEIGHT)),
@@ -16,12 +21,14 @@ pub fn main() !void {
     rl.setExitKey(rl.KeyboardKey.null);
     rl.setTargetFPS(settings.WindowConfig.FPS);
 
-    var game_state = game.GameState.init();
+    var game_state = try game.GameState.init(allocator);
+    defer game_state.deinit();
+
     var input_handler = input.InputHandler{};
 
     while (!rl.windowShouldClose()) {
         input_handler.update(&game_state);
-        game_state.update();
+        try game_state.update();
         renderer.Renderer.drawGame(&game_state);
     }
 }
