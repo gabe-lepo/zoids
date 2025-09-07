@@ -1,28 +1,8 @@
 const std = @import("std");
 const rl = @import("raylib");
 const settings = @import("settings.zig");
-
-var global_rng: std.Random.DefaultPrng = undefined;
-var rng_init: bool = false;
-
-// Helpers
-fn initRng() void {
-    if (!rng_init) {
-        var seed: u64 = undefined;
-        std.posix.getrandom(std.mem.asBytes(&seed)) catch |e| {
-            std.debug.print("std.posix.getrandom error:\n\t{any}\n", .{e});
-            std.debug.print("Using current timestamp for seed!\n", .{});
-            seed = @intCast(std.time.timestamp());
-        };
-        global_rng = std.Random.DefaultPrng.init(seed);
-        rng_init = true;
-    }
-}
-
-pub fn getRng() std.Random {
-    initRng();
-    return global_rng.random();
-}
+const utils = @import("utils.zig");
+const game = @import("game.zig");
 
 fn vector2Limit(vec: rl.Vector2, maxMagnitude: f32) rl.Vector2 {
     const mag = vec.length();
@@ -30,7 +10,7 @@ fn vector2Limit(vec: rl.Vector2, maxMagnitude: f32) rl.Vector2 {
 }
 
 fn vector2Random() rl.Vector2 {
-    var rng = getRng();
+    var rng = utils.PrngHelper.getRng();
 
     return rl.Vector2{
         // Vec of rand [-2..2]
@@ -48,27 +28,29 @@ pub const DebugOptions = enum {
     all,
 };
 
+const bconfig = settings.BoidConfig;
+
 // Meat and potatoes
 pub const Boid = struct {
     // Core
     position: rl.Vector2,
     velocity: rl.Vector2,
     acceleration: rl.Vector2,
-    maxSpeed: f32 = 2.5,
-    maxForce: f32 = 0.04,
+    maxSpeed: f32 = bconfig.MAX_SPEED,
+    maxForce: f32 = bconfig.MAX_FORCE,
 
     // Behavior radii
-    separationRadius: f32 = 32.0,
-    alignmentRadius: f32 = 64.0,
-    cohesionRadius: f32 = 64.0,
+    separationRadius: f32 = bconfig.SEPARATION_RADIUS,
+    alignmentRadius: f32 = bconfig.ALIGNMENT_RADIUS,
+    cohesionRadius: f32 = bconfig.COHESION_RADIUS,
 
     // Behavior weighting
-    separationWeight: f32 = 1.5,
-    alignmentWeight: f32 = 1.0,
-    cohesionWeight: f32 = 1.0,
+    separationWeight: f32 = bconfig.SEPARATION_WEIGHT,
+    alignmentWeight: f32 = bconfig.ALIGNMENT_WEIGHT,
+    cohesionWeight: f32 = bconfig.COHESION_WEIGHT,
 
     // Visual props
-    size: f32 = 8.0,
+    size: f32 = bconfig.SIZE,
     color: rl.Color = rl.Color.white,
 
     const Self = @This();
@@ -82,11 +64,11 @@ pub const Boid = struct {
     }
 
     pub fn initRandom() Self {
-        var rng = getRng();
+        var rng = utils.PrngHelper.getRng();
 
         return Self.initSpecific(rl.Vector2{
-            .x = rng.float(f32) * @as(f32, @floatFromInt(settings.WINDOW_WIDTH)),
-            .y = rng.float(f32) * @as(f32, @floatFromInt(settings.WINDOW_HEIGHT)),
+            .x = rng.float(f32) * settings.WindowConfig.WIDTH,
+            .y = rng.float(f32) * settings.WindowConfig.HEIGHT,
         });
     }
 
@@ -208,13 +190,13 @@ pub const Boid = struct {
         self.position = self.position.add(self.velocity);
         self.acceleration = rl.Vector2.zero();
 
-        self.mouseAttract();
+        // self.mouseAttract();
         self.wrapAround();
     }
 
     fn wrapAround(self: *Self) void {
-        const width = @as(f32, @floatFromInt(settings.WINDOW_WIDTH));
-        const height = @as(f32, @floatFromInt(settings.WINDOW_HEIGHT));
+        const width = settings.WindowConfig.WIDTH;
+        const height = settings.WindowConfig.HEIGHT;
 
         if (self.position.x < 0) self.position.x = width;
         if (self.position.x > width) self.position.x = 0;
@@ -223,6 +205,7 @@ pub const Boid = struct {
     }
 
     pub fn draw(self: *const Self) void {
+        // TODO: Figure out how to use @tan and @Vector builtins
         const ang = std.math.atan2(self.velocity.y, self.velocity.x);
         const half = self.size * 0.5;
 
@@ -230,8 +213,8 @@ pub const Boid = struct {
         const left_offset = rl.Vector2{ .x = -half, .y = -half };
         const right_offset = rl.Vector2{ .x = -half, .y = half };
 
-        const cos_a = std.math.cos(ang);
-        const sin_a = std.math.sin(ang);
+        const cos_a = @cos(ang);
+        const sin_a = @sin(ang);
 
         const tip = rl.Vector2{
             .x = self.position.x + (tip_offset.x * cos_a - tip_offset.y * sin_a),
@@ -247,6 +230,9 @@ pub const Boid = struct {
         };
 
         rl.drawTriangleLines(tip, left, right, self.color);
+
+        // Pixel test for fps improvements
+        // rl.drawPixelV(self.position, self.color);
     }
 
     pub fn drawDebug(self: *const Self, debug_option: DebugOptions) void {
@@ -305,10 +291,6 @@ pub const Boid = struct {
         }
     }
 
-    pub fn applyForce(self: *Self, force: rl.Vector2) void {
-        self.acceleration = self.acceleration.add(force);
-    }
-
     pub fn mouseAttract(self: *Self) void {
         const mousePos = rl.getMousePosition();
         const distance = self.position.distance(mousePos);
@@ -317,7 +299,7 @@ pub const Boid = struct {
 
         if (distance < attractReject_radius) {
             const force = self.seek(mousePos).scale(attractReject_forceScale);
-            self.applyForce(force);
+            self.acceleration = self.acceleration.add(force);
         }
 
         rl.drawCircleLinesV(mousePos, attractReject_radius, rl.Color.gold);

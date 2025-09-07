@@ -1,6 +1,29 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+pub const PrngHelper = struct {
+    var prng: std.Random.DefaultPrng = undefined;
+    var is_initialized: bool = false;
+
+    pub fn init() void {
+        if (!is_initialized) {
+            var seed: u64 = undefined;
+            std.posix.getrandom(std.mem.asBytes(&seed)) catch |e| {
+                std.debug.print("std.posix.getrandom error:\n\t{any}\n", .{e});
+                std.debug.print("Using current timestamp for seed!\n", .{});
+                seed = @intCast(std.time.timestamp());
+            };
+            prng = std.Random.DefaultPrng.init(seed);
+            is_initialized = true;
+        }
+    }
+
+    pub fn getRng() std.Random {
+        init();
+        return prng.random();
+    }
+};
+
 pub const Colors = struct {
     // Types
     pub const HSL = struct {
