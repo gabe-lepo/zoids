@@ -23,6 +23,7 @@ pub const InputHandler = struct {
 
     fn handleKeyboard(self: *Self, game_state: *game.GameState) void {
         _ = self;
+
         // Reset game
         if (rl.isKeyPressed(rl.KeyboardKey.r)) {
             game_state.reset();
@@ -31,6 +32,11 @@ pub const InputHandler = struct {
         // Pause game
         if (rl.isKeyPressed(rl.KeyboardKey.p)) {
             game_state.paused = !game_state.paused;
+        }
+
+        // Show spatial grid
+        if (rl.isKeyPressed(rl.KeyboardKey.g)) {
+            game_state.showGrid = !game_state.showGrid;
         }
     }
 

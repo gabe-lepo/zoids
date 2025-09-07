@@ -2,6 +2,7 @@ const rl = @import("raylib");
 const settings = @import("settings.zig");
 const boids = @import("boids.zig");
 const game = @import("game.zig");
+const spatial = @import("spatial.zig");
 
 pub const Renderer = struct {
     pub fn drawGame(game_state: *game.GameState) void {
@@ -12,9 +13,10 @@ pub const Renderer = struct {
 
         drawBoids(game_state);
         drawUI(game_state);
+        if (game_state.showGrid) drawGridCells(game_state);
     }
 
-    fn drawBoids(game_state: *game.GameState) void {
+    fn drawBoids(game_state: *const game.GameState) void {
         for (game_state.boids_arr[0..game_state.active_boid_count]) |boid| {
             if (game_state.current_debug_opt == .none) {
                 boid.draw();
@@ -53,11 +55,46 @@ pub const Renderer = struct {
         }
 
         rl.drawText(
-            "Left Click: Add Boids | Right Click: Debug | R: Reset | P: Pause",
+            settings.WindowConfig.GAME_INSTRUCTIONS,
             10,
             settings.WindowConfig.HEIGHT - 30,
-            16,
+            settings.WindowConfig.FONT_SIZE,
             rl.Color.gray,
         );
+    }
+
+    fn drawGridCells(game_state: *const game.GameState) void {
+        const grid = &game_state.spatial_grid;
+        const width = spatial.SpatialGrid.GRID_WIDTH;
+        const height = spatial.SpatialGrid.GRID_HEIGHT;
+        const cell_size = spatial.SpatialGrid.CELL_SIZE;
+
+        for (0..height) |y| {
+            for (0..width) |x| {
+                const cell = &grid.cells[y][x];
+
+                const cell_x = @as(f32, @floatFromInt(x)) * cell_size;
+                const cell_y = @as(f32, @floatFromInt(y)) * cell_size;
+
+                rl.drawRectangleLines(
+                    @intFromFloat(cell_x),
+                    @intFromFloat(cell_y),
+                    @intFromFloat(cell_size),
+                    @intFromFloat(cell_size),
+                    rl.Color.dark_gray.alpha(0.3),
+                );
+
+                if (cell.count > 0) {
+                    const count_text = rl.textFormat("%d", .{cell.count});
+                    rl.drawText(
+                        count_text,
+                        @intFromFloat(cell_x + 2),
+                        @intFromFloat(cell_y + 2),
+                        12,
+                        rl.Color.yellow,
+                    );
+                }
+            }
+        }
     }
 };

@@ -26,7 +26,6 @@ fn distanceSquared(a: rl.Vector2, b: rl.Vector2) f32 {
     return distance_x * distance_x + distance_y * distance_y;
 }
 
-// Debug options
 pub const DebugOptions = enum {
     none,
     separation_radius,
@@ -37,7 +36,6 @@ pub const DebugOptions = enum {
 
 const bconfig = settings.BoidConfig;
 
-// Meat and potatoes
 pub const Boid = struct {
     // Core
     position: rl.Vector2,
@@ -88,10 +86,10 @@ pub const Boid = struct {
     // * Seeking
     // ----------------
 
-    pub fn flock(self: *Self, boids: []const Boid) void {
-        const sep = self.separate(boids);
-        const ali = self.alignment(boids);
-        const coh = self.cohesion(boids);
+    pub fn flock(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
+        const sep = self.separate(all_boids, nearby_indices);
+        const ali = self.alignment(all_boids, nearby_indices);
+        const coh = self.cohesion(all_boids, nearby_indices);
 
         self.acceleration = self.acceleration
             .add(sep.scale(self.separationWeight))
@@ -99,12 +97,13 @@ pub const Boid = struct {
             .add(coh.scale(self.cohesionWeight));
     }
 
-    fn separate(self: *const Self, boids: []const Boid) rl.Vector2 {
+    fn separate(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
         var steer = rl.Vector2.zero();
         var count: f32 = 0.0;
         const separation_radius_sq = self.separationRadius * self.separationRadius;
 
-        for (boids) |other| {
+        for (nearby_indices) |boid_idx| {
+            const other = &all_boids[boid_idx];
             const dist_sq = distanceSquared(self.position, other.position);
 
             if (dist_sq > 0 and dist_sq < separation_radius_sq) {
@@ -130,12 +129,13 @@ pub const Boid = struct {
         return steer;
     }
 
-    fn alignment(self: *const Self, boids: []const Boid) rl.Vector2 {
+    fn alignment(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
         var sum = rl.Vector2.zero();
         var count: f32 = 0.0;
         const alignment_radius_sq = self.alignmentRadius * self.alignmentRadius;
 
-        for (boids) |other| {
+        for (nearby_indices) |boid_idx| {
+            const other = &all_boids[boid_idx];
             const dist_sq = distanceSquared(self.position, other.position);
             if (dist_sq > 0 and dist_sq < alignment_radius_sq) {
                 sum = sum.add(other.velocity);
@@ -156,12 +156,13 @@ pub const Boid = struct {
         }
     }
 
-    fn cohesion(self: *const Self, boids: []const Boid) rl.Vector2 {
+    fn cohesion(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
         var sum = rl.Vector2.zero();
         var count: f32 = 0.0;
         const cohesion_radius_sq = self.cohesionRadius * self.cohesionRadius;
 
-        for (boids) |other| {
+        for (nearby_indices) |boid_idx| {
+            const other = &all_boids[boid_idx];
             const dist_sq = distanceSquared(self.position, other.position);
             if (dist_sq > 0 and dist_sq < cohesion_radius_sq) {
                 sum = sum.add(other.position);

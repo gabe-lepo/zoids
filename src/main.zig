@@ -20,9 +20,10 @@ pub fn main() !void {
 
     rl.setExitKey(rl.KeyboardKey.null);
     rl.setTargetFPS(settings.WindowConfig.FPS);
+    rl.setTraceLogLevel(rl.TraceLogLevel.none); // WARN: No raylib logs!
 
     var game_state = try game.GameState.init(allocator);
-    defer game_state.deinit();
+    // defer game_state.deinit();
 
     var input_handler = input.InputHandler{};
 

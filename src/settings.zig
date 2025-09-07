@@ -8,6 +8,7 @@ pub const WindowConfig = struct {
     pub const BACKGROUND_COLOR = rl.Color.black;
     pub const FPS = 60;
     pub const FONT_SIZE = 20;
+    pub const GAME_INSTRUCTIONS: [:0]const u8 = "Left Click: Add Boids | Right Click: Debug | R: Reset | P: Pause | G: Show grid";
 };
 
 pub const BoidConfig = struct {

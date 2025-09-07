@@ -12,7 +12,12 @@ pub const GameState = struct {
 
     // Spatial partitioning perf
     spatial_grid: spatial.SpatialGrid,
-    nearby_boids_buf: std.ArrayList(usize),
+    showGrid: bool,
+
+    // Fixed buffer instead of array list
+    nearby_boids_buf: [256]usize,
+    nearby_boids_count: usize,
+
     allocator: std.mem.Allocator,
 
     const Self = @This();
@@ -25,17 +30,22 @@ pub const GameState = struct {
             .paused = false,
 
             .allocator = allocator,
-            .spatial_grid = try spatial.SpatialGrid.init(allocator),
-            .nearby_boids_buf = try std.ArrayList(usize).initCapacity(allocator, 32),
+            .spatial_grid = spatial.SpatialGrid.init(),
+            .showGrid = false,
+            .nearby_boids_buf = undefined,
+            .nearby_boids_count = 0,
         };
         state.initBoids();
         return state;
     }
 
-    pub fn deinit(self: *Self) void {
-        self.spatial_grid.deinit();
-        self.nearby_boids_buf.deinit(self.allocator);
-    }
+    // pub fn deinit(self: *Self) void {
+    //     _ = self;
+    //     @compileError("GameState.deinit is deprecated!\n");
+    //
+    //     // self.spatial_grid.deinit();
+    //     // self.nearby_boids_buf.deinit(self.allocator);
+    // }
 
     pub fn initBoids(self: *Self) void {
         for (self.boids_arr[0..self.active_boid_count]) |*boid| {
@@ -60,7 +70,7 @@ pub const GameState = struct {
     pub fn update(self: *Self) !void {
         if (self.paused) return;
 
-        // Clear and rebuild s grid
+        // Clear and rebuild spatial grid
         self.spatial_grid.clear();
         for (0..self.active_boid_count) |i| {
             try self.spatial_grid.addBoid(i, self.boids_arr[i].position);
@@ -68,17 +78,16 @@ pub const GameState = struct {
 
         // Update each boid using only nearby boids
         for (0..self.active_boid_count) |i| {
-            try self.spatial_grid.getNearbyBoids(self.boids_arr[i].position, &self.nearby_boids_buf);
+            self.spatial_grid.getNearbyBoids(
+                self.boids_arr[i].position,
+                &self.nearby_boids_buf,
+                &self.nearby_boids_count,
+            );
 
-            // Create slice of nearby boids for flocking
-            var nearby_boids = try self.allocator.alloc(boids.Boid, self.nearby_boids_buf.items.len);
-            defer self.allocator.free(nearby_boids);
-
-            for (self.nearby_boids_buf.items, 0..) |boid_idx, j| {
-                nearby_boids[j] = self.boids_arr[boid_idx];
-            }
-
-            self.boids_arr[i].flock(nearby_boids);
+            self.boids_arr[i].flock(
+                self.boids_arr[0..self.active_boid_count],
+                self.nearby_boids_buf[0..self.nearby_boids_count],
+            );
             self.boids_arr[i].update();
         }
     }
