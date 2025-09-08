@@ -6,11 +6,6 @@ const input = @import("input.zig");
 const renderer = @import("renderer.zig");
 
 pub fn main() !void {
-    //alloc boilerplate
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
     rl.initWindow(
         @as(i32, @intFromFloat(settings.WindowConfig.WIDTH)),
         @as(i32, @intFromFloat(settings.WindowConfig.HEIGHT)),
@@ -20,9 +15,8 @@ pub fn main() !void {
 
     rl.setExitKey(rl.KeyboardKey.null);
     rl.setTargetFPS(settings.WindowConfig.FPS);
-    rl.setTraceLogLevel(rl.TraceLogLevel.none); // WARN: No raylib logs!
 
-    var game_state = try game.GameState.init(allocator);
+    var game_state = try game.GameState.init();
 
     var input_handler = input.InputHandler{};
 

@@ -19,7 +19,6 @@ fn vector2Random() rl.Vector2 {
     };
 }
 
-// PERF:
 fn distanceSquared(a: rl.Vector2, b: rl.Vector2) f32 {
     const distance_x = a.x - b.x;
     const distance_y = a.y - b.y;
@@ -199,13 +198,29 @@ pub const Boid = struct {
     // ----------------
 
     pub fn update(self: *Self) void {
+        // Basic vel/accel/pos updates
         self.velocity = self.velocity.add(self.acceleration);
         self.velocity = vector2Limit(self.velocity, self.maxSpeed);
         self.position = self.position.add(self.velocity);
         self.acceleration = rl.Vector2.zero();
 
+        // Special handling (wall behavior, mouse interactions)
         // self.mouseAttract();
         self.wrapAround();
+        // self.bounceOffWall();
+    }
+
+    // FIX: bounceOffWall crashes
+    fn bounceOffWall(self: *Self) void {
+        _ = self;
+        @compileError("bounceOffWall called! It crashes!\n");
+        // const width = settings.WindowConfig.WIDTH;
+        // const height = settings.WindowConfig.HEIGHT;
+        // const boundary_thresh = 25.0;
+        // if (self.position.x + self.acceleration.x >= width - boundary_thresh)
+        //     self.acceleration = rl.Vector2{ .x = -self.acceleration.x, .y = self.acceleration.y };
+        // if (self.position.y + self.acceleration.y >= width - boundary_thresh)
+        //     self.acceleration = rl.Vector2{ .x = self.acceleration.x, .y = -self.acceleration.y };
     }
 
     fn wrapAround(self: *Self) void {

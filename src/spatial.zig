@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const settings = @import("settings.zig");
 const game = @import("game.zig");
+const boids = @import("boids.zig");
 
 pub const SpatialGrid = struct {
     pub const CELL_SIZE: f32 = @max(
@@ -11,8 +12,7 @@ pub const SpatialGrid = struct {
     );
     pub const GRID_WIDTH: usize = @intFromFloat(@ceil(settings.WindowConfig.WIDTH / CELL_SIZE));
     pub const GRID_HEIGHT: usize = @intFromFloat(@ceil(settings.WindowConfig.HEIGHT / CELL_SIZE));
-    // FIX:
-    // PERF:
+    // TEST: This max boids per cell calc
     pub const MAX_BOIDS_PER_CELL: usize = blk: {
         const total_boids = settings.BoidConfig.MAX_BOIDS;
         const total_cells = GRID_HEIGHT * GRID_WIDTH;
@@ -20,7 +20,7 @@ pub const SpatialGrid = struct {
         const avg = (total_boids + total_cells - 1) / total_cells;
         const clust_f = 4;
 
-        break :blk @max(64, avg * clust_f);
+        break :blk @min(64, avg * clust_f);
     };
 
     // Fixed arrays instead of arraylists
@@ -32,13 +32,13 @@ pub const SpatialGrid = struct {
             self.count = 0;
         }
 
-        fn addBoid(self: *Cell, boid_index: usize) void {
+        fn addBoidToCell(self: *Cell, boid_index: usize) void {
             if (self.count < MAX_BOIDS_PER_CELL) {
                 self.boid_indices[self.count] = boid_index;
                 self.count += 1;
             } else {
-                // TODO: Ignoring overflow,
-                // exluding additional boids from spatial grid optimization
+                // FIX: Ignoring overflow, exluding additional boids from spatial grid optimization
+                std.debug.print("Not counting boid_index {d}\n", .{boid_index});
             }
         }
 
@@ -86,7 +86,7 @@ pub const SpatialGrid = struct {
 
     pub fn addBoid(self: *Self, boid_index: usize, position: rl.Vector2) void {
         const coords = getCellCoords(position);
-        self.cells[coords.y][coords.x].addBoid(boid_index);
+        self.cells[coords.y][coords.x].addBoidToCell(boid_index);
     }
 
     pub fn getNearbyBoids(self: *Self, position: rl.Vector2, nearby_buf: []usize, nearby_count: *usize) void {

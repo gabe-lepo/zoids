@@ -15,21 +15,19 @@ pub const GameState = struct {
     showGrid: bool,
 
     // Fixed buffer instead of array list
+    // PERF: Need more in nearby boids buf
     nearby_boids_buf: [256]usize,
     nearby_boids_count: usize,
 
-    allocator: std.mem.Allocator,
-
     const Self = @This();
 
-    pub fn init(allocator: std.mem.Allocator) !Self {
+    pub fn init() !Self {
         var state = Self{
             .boids_arr = undefined,
             .active_boid_count = settings.BoidConfig.INITIAL_BOIDS,
             .current_debug_opt = boids.DebugOptions.none,
             .paused = false,
 
-            .allocator = allocator,
             .spatial_grid = spatial.SpatialGrid.init(),
             .showGrid = false,
             .nearby_boids_buf = undefined,
@@ -69,6 +67,7 @@ pub const GameState = struct {
         }
 
         // Update each boid using only nearby boids
+        // PERF: looping through all boids calling functions that... loop through all boids
         for (0..self.active_boid_count) |i| {
             self.spatial_grid.getNearbyBoids(
                 self.boids_arr[i].position,
@@ -82,5 +81,9 @@ pub const GameState = struct {
             );
             self.boids_arr[i].update();
         }
+    }
+
+    pub fn getNearbyBoidsCount(self: *const Self) usize {
+        return self.nearby_boids_count;
     }
 };

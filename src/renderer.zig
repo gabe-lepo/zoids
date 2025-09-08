@@ -86,7 +86,7 @@ pub const Renderer = struct {
                 );
 
                 if (cell.count > 0) {
-                    const count_text = rl.textFormat("%d", .{cell.count});
+                    const count_text = rl.textFormat("%d", .{game_state.getNearbyBoidsCount()});
                     rl.drawText(
                         count_text,
                         @intFromFloat(cell_x + 2),
