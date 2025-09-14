@@ -30,5 +30,6 @@ pub const BoidConfig = struct {
     pub const COHESION_WEIGHT = 1.0;
 
     // Spatial grid
+    // FIX: if cells are smaller, program crashes
     pub const CELL_SIZE = ALIGNMENT_RADIUS * 2.0;
 };
