@@ -75,7 +75,7 @@ pub const GameState = struct {
                 &self.nearby_boids_count,
             );
 
-            self.boids_arr[i].updateFlock(
+            self.boids_arr[i].updateFlockOptimize1(
                 self.boids_arr[0..self.active_boid_count],
                 self.nearby_boids_buf[0..self.nearby_boids_count],
             );

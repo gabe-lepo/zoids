@@ -85,105 +85,180 @@ pub const Boid = struct {
     // * Seeking
     // ----------------
 
-    pub fn updateFlock(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
-        const sep = self.separate(all_boids, nearby_indices);
-        const ali = self.alignment(all_boids, nearby_indices);
-        const coh = self.cohesion(all_boids, nearby_indices);
+    pub fn updateFlockOptimize1(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
+        const sep_radius_sq = self.separationRadius * self.separationRadius;
+        const align_radius_sq = self.alignmentRadius * self.alignmentRadius;
 
-        self.acceleration = self.acceleration
-            .add(sep.scale(self.separationWeight))
-            .add(ali.scale(self.alignmentWeight))
-            .add(coh.scale(self.cohesionWeight));
-    }
+        const self_pos = self.position;
+        const self_vel = self.velocity;
 
-    fn separate(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
-        var steer = rl.Vector2.zero();
-        var count: f32 = 0.0;
-        const separation_radius_sq = self.separationRadius * self.separationRadius;
+        var sep_force = rl.Vector2.zero();
+        var align_vel_sum = rl.Vector2.zero();
+        var cohes_pos_sum = rl.Vector2.zero();
 
+        var sep_count: f32 = 0.0;
+        var other_count: f32 = 0.0; // For both alignment and cohesion
+
+        // Single pass with early termination optimizations
         for (nearby_indices) |boid_idx| {
-            const other = &all_boids[boid_idx];
-            const dist_sq = distanceSquared(self.position, other.position);
+            const other = all_boids[boid_idx];
+            const dx = self_pos.x - other.position.x;
+            const dy = self_pos.y - other.position.y;
+            const dist_sq = dx * dx + dy * dy;
 
-            if (dist_sq > 0 and dist_sq < separation_radius_sq) {
-                const distance = @sqrt(dist_sq);
-                const difference = self.position
-                    .subtract(other.position)
-                    .normalize()
-                    .scale(1.0 / distance);
-                steer = steer.add(difference);
-                count += 1.0;
+            if (dist_sq == 0.0) continue;
+
+            // Separation (closest neighbors)
+            if (dist_sq < sep_radius_sq) {
+                // Use 1/dist instead of 1/dist^2 for less aggressive separation
+                const inv_dist = 1.0 / @sqrt(dist_sq);
+                sep_force.x += dx * inv_dist;
+                sep_force.y += dy * inv_dist;
+                sep_count += 1.0;
+            }
+
+            // Alignment and cohesion (same radius)
+            if (dist_sq < align_radius_sq) {
+                align_vel_sum = align_vel_sum.add(other.velocity);
+                cohes_pos_sum = cohes_pos_sum.add(other.position);
+                other_count += 1.0;
             }
         }
 
-        if (count > 0.0) {
-            steer = steer
-                .scale(1.0 / count)
-                .normalize()
-                .scale(self.maxSpeed)
-                .subtract(self.velocity);
-            steer = vector2Limit(steer, self.maxForce);
-        }
+        var total_force = rl.Vector2.zero();
 
-        return steer;
-    }
-
-    fn alignment(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
-        var sum = rl.Vector2.zero();
-        var count: f32 = 0.0;
-        const alignment_radius_sq = self.alignmentRadius * self.alignmentRadius;
-
-        for (nearby_indices) |boid_idx| {
-            const other = &all_boids[boid_idx];
-            const dist_sq = distanceSquared(self.position, other.position);
-            if (dist_sq > 0 and dist_sq < alignment_radius_sq) {
-                sum = sum.add(other.velocity);
-                count += 1.0;
+        // Apply separation
+        if (sep_count > 0.0) {
+            sep_force = sep_force.scale(1.0 / sep_count);
+            if (sep_force.lengthSqr() > 0.001) {
+                sep_force = sep_force.normalize().scale(self.maxSpeed).subtract(self_vel);
+                sep_force = vector2Limit(sep_force, self.maxForce);
+                total_force = total_force.add(sep_force.scale(self.separationWeight));
             }
         }
 
-        if (count > 0.0) {
-            sum = sum
-                .scale(1.0 / count)
-                .normalize()
-                .scale(self.maxSpeed);
-            var steer = sum.subtract(self.velocity);
-            steer = vector2Limit(steer, self.maxForce);
-            return steer;
-        } else {
-            return rl.Vector2.zero();
-        }
-    }
+        // Apply alignment and cohesion together
+        if (other_count > 0.0) {
+            // Alignment
+            var align_force = align_vel_sum.scale(1.0 / other_count);
+            if (align_force.lengthSqr() > 0.001) {
+                align_force = align_force.normalize().scale(self.maxSpeed).subtract(self_vel);
+                align_force = vector2Limit(align_force, self.maxForce);
+                total_force = total_force.add(align_force.scale(self.alignmentWeight));
+            }
 
-    fn cohesion(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
-        var sum = rl.Vector2.zero();
-        var count: f32 = 0.0;
-        const cohesion_radius_sq = self.cohesionRadius * self.cohesionRadius;
-
-        for (nearby_indices) |boid_idx| {
-            const other = &all_boids[boid_idx];
-            const dist_sq = distanceSquared(self.position, other.position);
-            if (dist_sq > 0 and dist_sq < cohesion_radius_sq) {
-                sum = sum.add(other.position);
-                count += 1.0;
+            // Cohesion (inline seek)
+            const center = cohes_pos_sum.scale(1.0 / other_count);
+            var cohes_force = center.subtract(self_pos);
+            if (cohes_force.lengthSqr() > 0.001) {
+                cohes_force = cohes_force.normalize().scale(self.maxSpeed).subtract(self_vel);
+                cohes_force = vector2Limit(cohes_force, self.maxForce);
+                total_force = total_force.add(cohes_force.scale(self.cohesionWeight));
             }
         }
 
-        if (count > 0.0) {
-            sum = sum.scale(1.0 / count);
-            return self.seek(sum);
-        } else {
-            return rl.Vector2.zero();
-        }
+        self.acceleration = self.acceleration.add(total_force);
     }
 
-    fn seek(self: *const Self, target: rl.Vector2) rl.Vector2 {
-        var desired = target
-            .subtract(self.position)
+    // pub fn updateFlock(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
+    //     const sep = self.separate(all_boids, nearby_indices);
+    //     const ali = self.alignment(all_boids, nearby_indices);
+    //     const coh = self.cohesion(all_boids, nearby_indices);
+    //
+    //     self.acceleration = self.acceleration
+    //         .add(sep.scale(self.separationWeight))
+    //         .add(ali.scale(self.alignmentWeight))
+    //         .add(coh.scale(self.cohesionWeight));
+    // }
+
+    // fn separate(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
+    //     var steer = rl.Vector2.zero();
+    //     var count: f32 = 0.0;
+    //     const separation_radius_sq = self.separationRadius * self.separationRadius;
+    //
+    //     for (nearby_indices) |boid_idx| {
+    //         const other = &all_boids[boid_idx];
+    //         const dist_sq = distanceSquared(self.position, other.position);
+    //
+    //         if (dist_sq > 0 and dist_sq < separation_radius_sq) {
+    //             const distance = @sqrt(dist_sq);
+    //             const difference = self.position
+    //                 .subtract(other.position)
+    //                 .normalize()
+    //                 .scale(1.0 / distance);
+    //             steer = steer.add(difference);
+    //             count += 1.0;
+    //         }
+    //     }
+    //
+    //     if (count > 0.0) {
+    //         steer = steer
+    //             .scale(1.0 / count)
+    //             .normalize()
+    //             .scale(self.maxSpeed)
+    //             .subtract(self.velocity);
+    //         steer = vector2Limit(steer, self.maxForce);
+    //     }
+    //
+    //     return steer;
+    // }
+
+    // fn alignment(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
+    //     var sum = rl.Vector2.zero();
+    //     var count: f32 = 0.0;
+    //     const alignment_radius_sq = self.alignmentRadius * self.alignmentRadius;
+    //
+    //     for (nearby_indices) |boid_idx| {
+    //         const other = &all_boids[boid_idx];
+    //         const dist_sq = distanceSquared(self.position, other.position);
+    //         if (dist_sq > 0 and dist_sq < alignment_radius_sq) {
+    //             sum = sum.add(other.velocity);
+    //             count += 1.0;
+    //         }
+    //     }
+    //
+    //     if (count > 0.0) {
+    //         sum = sum
+    //             .scale(1.0 / count)
+    //             .normalize()
+    //             .scale(self.maxSpeed);
+    //         var steer = sum.subtract(self.velocity);
+    //         steer = vector2Limit(steer, self.maxForce);
+    //         return steer;
+    //     } else {
+    //         return rl.Vector2.zero();
+    //     }
+    // }
+
+    // fn cohesion(self: *const Self, all_boids: []const Boid, nearby_indices: []const usize) rl.Vector2 {
+    //     var sum = rl.Vector2.zero();
+    //     var count: f32 = 0.0;
+    //     const cohesion_radius_sq = self.cohesionRadius * self.cohesionRadius;
+    //
+    //     for (nearby_indices) |boid_idx| {
+    //         const other = &all_boids[boid_idx];
+    //         const dist_sq = distanceSquared(self.position, other.position);
+    //         if (dist_sq > 0 and dist_sq < cohesion_radius_sq) {
+    //             sum = sum.add(other.position);
+    //             count += 1.0;
+    //         }
+    //     }
+    //
+    //     if (count > 0.0) {
+    //         sum = sum.scale(1.0 / count);
+    //         return self.seek(sum);
+    //     } else {
+    //         return rl.Vector2.zero();
+    //     }
+    // }
+
+    fn seek(self: *const Self, target: rl.Vector2, self_pos: rl.Vector2, self_vel: rl.Vector2) rl.Vector2 {
+        const desired = target
+            .subtract(self_pos)
             .normalize()
             .scale(self.maxSpeed);
 
-        var steer = desired.subtract(self.velocity);
+        var steer = desired.subtract(self_vel);
         steer = vector2Limit(steer, self.maxForce);
         return steer;
     }
