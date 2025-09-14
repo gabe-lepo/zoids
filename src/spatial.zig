@@ -13,9 +13,9 @@ pub const SpatialGrid = struct {
         const total_cells = GRID_HEIGHT * GRID_WIDTH;
 
         const avg = (total_boids + total_cells - 1) / total_cells;
-        const clust_f = 4;
+        const clust_f = 2;
 
-        break :blk @max(64, avg * clust_f);
+        break :blk @min(256, @max(64, avg * clust_f));
     };
 
     const Cell = struct {
@@ -31,7 +31,7 @@ pub const SpatialGrid = struct {
                 self.boid_indices[self.boid_count] = boid_index;
                 self.boid_count += 1;
             } else {
-                // FIX: Ignoring overflow, exluding additional boids from spatial grid optimization
+                // TODO: Ignoring overflow, exluding additional boids from spatial grid optimization
             }
         }
 

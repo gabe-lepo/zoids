@@ -315,33 +315,33 @@ pub const Boid = struct {
 
     pub fn draw(self: *const Self) void {
         // TODO: Figure out how to use @tan and @Vector builtins
-        const ang = std.math.atan2(self.velocity.y, self.velocity.x);
-        const half = self.size * 0.5;
-
-        const tip_offset = rl.Vector2{ .x = self.size, .y = 0 };
-        const left_offset = rl.Vector2{ .x = -half, .y = -half };
-        const right_offset = rl.Vector2{ .x = -half, .y = half };
-
-        const cos_a = @cos(ang);
-        const sin_a = @sin(ang);
-
-        const tip = rl.Vector2{
-            .x = self.position.x + (tip_offset.x * cos_a - tip_offset.y * sin_a),
-            .y = self.position.y + (tip_offset.x * sin_a + tip_offset.y * cos_a),
-        };
-        const left = rl.Vector2{
-            .x = self.position.x + (left_offset.x * cos_a - left_offset.y * sin_a),
-            .y = self.position.y + (left_offset.x * sin_a + left_offset.y * cos_a),
-        };
-        const right = rl.Vector2{
-            .x = self.position.x + (right_offset.x * cos_a - right_offset.y * sin_a),
-            .y = self.position.y + (right_offset.x * sin_a + right_offset.y * cos_a),
-        };
-
-        rl.drawTriangleLines(tip, left, right, self.color);
+        // const ang = std.math.atan2(self.velocity.y, self.velocity.x);
+        // const half = self.size * 0.5;
+        //
+        // const tip_offset = rl.Vector2{ .x = self.size, .y = 0 };
+        // const left_offset = rl.Vector2{ .x = -half, .y = -half };
+        // const right_offset = rl.Vector2{ .x = -half, .y = half };
+        //
+        // const cos_a = @cos(ang);
+        // const sin_a = @sin(ang);
+        //
+        // const tip = rl.Vector2{
+        //     .x = self.position.x + (tip_offset.x * cos_a - tip_offset.y * sin_a),
+        //     .y = self.position.y + (tip_offset.x * sin_a + tip_offset.y * cos_a),
+        // };
+        // const left = rl.Vector2{
+        //     .x = self.position.x + (left_offset.x * cos_a - left_offset.y * sin_a),
+        //     .y = self.position.y + (left_offset.x * sin_a + left_offset.y * cos_a),
+        // };
+        // const right = rl.Vector2{
+        //     .x = self.position.x + (right_offset.x * cos_a - right_offset.y * sin_a),
+        //     .y = self.position.y + (right_offset.x * sin_a + right_offset.y * cos_a),
+        // };
+        //
+        // rl.drawTriangleLines(tip, left, right, self.color);
 
         // Pixel test for fps improvements
-        // rl.drawPixelV(self.position, self.color);
+        rl.drawPixelV(self.position, rl.Color.yellow); // FIX: Hard code yellow for now
     }
 
     pub fn drawDebug(self: *const Self, debug_option: DebugOptions) void {

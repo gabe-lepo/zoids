@@ -13,7 +13,7 @@ pub const WindowConfig = struct {
 
 pub const BoidConfig = struct {
     // Flock sizing
-    pub const MAX_BOIDS = 10000;
+    pub const MAX_BOIDS = 15000;
     pub const INITIAL_BOIDS = MAX_BOIDS;
     pub const BOIDS_PER_CLICK_MIN = 100;
     pub const BOIDS_PER_CLICK_MAX = 250;

@@ -82,16 +82,15 @@ pub const Renderer = struct {
                     @intFromFloat(cell_y),
                     @intFromFloat(cell_size),
                     @intFromFloat(cell_size),
-                    rl.Color.dark_gray.alpha(0.3),
+                    rl.Color.gray.alpha(0.3),
                 );
 
-                if (cell.boid_count > 0) {
-                    const info_text = rl.textFormat("%d", .{cell.boid_count});
-                    rl.drawText(
-                        info_text,
-                        @intFromFloat(cell_x + 2),
-                        @intFromFloat(cell_y + 2),
-                        12,
+                if (cell.boid_count >= @TypeOf(game_state.spatial_grid).MAX_BOIDS_PER_CELL) {
+                    rl.drawRectangle(
+                        @intFromFloat(cell_x),
+                        @intFromFloat(cell_y),
+                        @intFromFloat(cell_size),
+                        @intFromFloat(cell_size),
                         rl.Color.yellow,
                     );
                 }
