@@ -5,7 +5,7 @@ const game = @import("game.zig");
 const boids = @import("boids.zig");
 
 pub const SpatialGrid = struct {
-    pub const CELL_SIZE: f32 = settings.BoidConfig.ALIGNMENT_RADIUS * 4.0;
+    pub const CELL_SIZE: f32 = settings.BoidConfig.CELL_SIZE;
     pub const GRID_WIDTH: usize = @intFromFloat(@ceil(settings.WindowConfig.WIDTH / CELL_SIZE));
     pub const GRID_HEIGHT: usize = @intFromFloat(@ceil(settings.WindowConfig.HEIGHT / CELL_SIZE));
     pub const MAX_BOIDS_PER_CELL: usize = blk: {
