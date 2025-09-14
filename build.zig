@@ -14,10 +14,17 @@ pub fn build(b: *std.Build) void {
     const raygui_mod = raylib_zig_dep.module("raygui");
     const raylib_art = raylib_zig_dep.artifact("raylib");
 
+    // Main exe
     const exe_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    // ZLS build checking module
+    const exe_check = b.addExecutable(.{
+        .name = "zigray",
+        .root_module = exe_mod,
     });
 
     const exe = b.addExecutable(.{
@@ -40,6 +47,8 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    const check_step = b.step("check", "Checking if zigray compiles");
+    check_step.dependOn(&exe_check.step);
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 }
