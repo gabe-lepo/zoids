@@ -23,7 +23,7 @@ pub fn main() !void {
 
     while (!rl.windowShouldClose()) {
         input_handler.update(p_game_state);
-        game_state.update();
+        game_state.updateStaggered();
         renderer.Renderer.drawGame(p_game_state);
     }
 }

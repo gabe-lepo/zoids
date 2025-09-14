@@ -9,6 +9,7 @@ pub const GameState = struct {
     active_boid_count: usize,
     current_debug_opt: boids.DebugOptions,
     paused: bool,
+    frame_counter: u64,
 
     // Spatial partitioning perf
     spatial_grid: spatial.SpatialGrid,
@@ -32,6 +33,7 @@ pub const GameState = struct {
             .showGrid = false,
             .nearby_boids_buf = undefined,
             .nearby_boids_count = 0,
+            .frame_counter = 0,
         };
         state.initBoids();
         return state;
@@ -66,8 +68,9 @@ pub const GameState = struct {
             self.spatial_grid.addBoid(i, self.boids_arr[i].position);
         }
 
-        // Update each boid using only nearby boids
-        // PERF: looping through all boids calling functions that... loop through all boids
+        // Update each boid:
+        // - Only for nearby boids
+        // - Every other frame
         for (0..self.active_boid_count) |i| {
             self.spatial_grid.getNearbyBoids(
                 self.boids_arr[i].position,
@@ -79,6 +82,42 @@ pub const GameState = struct {
                 self.boids_arr[0..self.active_boid_count],
                 self.nearby_boids_buf[0..self.nearby_boids_count],
             );
+            self.boids_arr[i].applyUpdate();
+        }
+    }
+
+    pub fn updateStaggered(self: *Self) void {
+        if (self.paused) return;
+
+        self.frame_counter += 1;
+
+        // Rebuild spatial_grid every frame
+        self.spatial_grid.clear();
+        for (0..self.active_boid_count) |i| {
+            self.spatial_grid.addBoid(i, self.boids_arr[i].position);
+        }
+
+        // Update each boid:
+        // - Only for nearby boids
+        // - Every other frame
+        for (0..self.active_boid_count) |i| {
+            const should_update = (i % 2) == (self.frame_counter % 2);
+
+            if (should_update) {
+                self.spatial_grid.getNearbyBoids(
+                    self.boids_arr[i].position,
+                    &self.nearby_boids_buf,
+                    &self.nearby_boids_count,
+                );
+
+                self.boids_arr[i].updateFlockOptimize1(
+                    self.boids_arr[0..self.active_boid_count],
+                    self.nearby_boids_buf[0..self.nearby_boids_count],
+                );
+            }
+
+            // Apply update every frame otherwise the boids
+            // will only move at rl.targetFPS() / 2
             self.boids_arr[i].applyUpdate();
         }
     }
