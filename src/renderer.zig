@@ -1,3 +1,4 @@
+const std = @import("std");
 const rl = @import("raylib");
 const settings = @import("settings.zig");
 const boids = @import("boids.zig");
@@ -73,7 +74,6 @@ pub const Renderer = struct {
         for (0..height) |y| {
             for (0..width) |x| {
                 const cell = &grid.cells[y][x];
-
                 const cell_x = @as(f32, @floatFromInt(x)) * cell_size;
                 const cell_y = @as(f32, @floatFromInt(y)) * cell_size;
 
@@ -85,10 +85,10 @@ pub const Renderer = struct {
                     rl.Color.dark_gray.alpha(0.3),
                 );
 
-                if (cell.count > 0) {
-                    const count_text = rl.textFormat("%d", .{game_state.getNearbyBoidsCount()});
+                if (cell.boid_count > 0) {
+                    const info_text = rl.textFormat("%d", .{cell.boid_count});
                     rl.drawText(
-                        count_text,
+                        info_text,
                         @intFromFloat(cell_x + 2),
                         @intFromFloat(cell_y + 2),
                         12,

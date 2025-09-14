@@ -85,7 +85,7 @@ pub const Boid = struct {
     // * Seeking
     // ----------------
 
-    pub fn flock(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
+    pub fn updateFlock(self: *Self, all_boids: []const Boid, nearby_indices: []const usize) void {
         const sep = self.separate(all_boids, nearby_indices);
         const ali = self.alignment(all_boids, nearby_indices);
         const coh = self.cohesion(all_boids, nearby_indices);
@@ -197,7 +197,7 @@ pub const Boid = struct {
     // * mouseAttract
     // ----------------
 
-    pub fn update(self: *Self) void {
+    pub fn applyUpdate(self: *Self) void {
         // Basic vel/accel/pos updates
         self.velocity = self.velocity.add(self.acceleration);
         self.velocity = vector2Limit(self.velocity, self.maxSpeed);
@@ -331,6 +331,10 @@ pub const Boid = struct {
             self.acceleration = self.acceleration.add(force);
         }
 
-        rl.drawCircleLinesV(mousePos, attractReject_radius, rl.Color.gold);
+        rl.drawCircleLinesV(
+            mousePos,
+            attractReject_radius,
+            rl.Color.gold,
+        );
     }
 };

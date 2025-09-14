@@ -75,15 +75,11 @@ pub const GameState = struct {
                 &self.nearby_boids_count,
             );
 
-            self.boids_arr[i].flock(
+            self.boids_arr[i].updateFlock(
                 self.boids_arr[0..self.active_boid_count],
                 self.nearby_boids_buf[0..self.nearby_boids_count],
             );
-            self.boids_arr[i].update();
+            self.boids_arr[i].applyUpdate();
         }
-    }
-
-    pub fn getNearbyBoidsCount(self: *const Self) usize {
-        return self.nearby_boids_count;
     }
 };

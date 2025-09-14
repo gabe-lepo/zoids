@@ -5,14 +5,9 @@ const game = @import("game.zig");
 const boids = @import("boids.zig");
 
 pub const SpatialGrid = struct {
-    pub const CELL_SIZE: f32 = @max(
-        settings.BoidConfig.ALIGNMENT_RADIUS * 2.0,
-        settings.BoidConfig.COHESION_RADIUS,
-        settings.BoidConfig.SEPARATION_RADIUS,
-    );
+    pub const CELL_SIZE: f32 = settings.BoidConfig.ALIGNMENT_RADIUS * 4.0;
     pub const GRID_WIDTH: usize = @intFromFloat(@ceil(settings.WindowConfig.WIDTH / CELL_SIZE));
     pub const GRID_HEIGHT: usize = @intFromFloat(@ceil(settings.WindowConfig.HEIGHT / CELL_SIZE));
-    // TEST: This max boids per cell calc
     pub const MAX_BOIDS_PER_CELL: usize = blk: {
         const total_boids = settings.BoidConfig.MAX_BOIDS;
         const total_cells = GRID_HEIGHT * GRID_WIDTH;
@@ -20,30 +15,28 @@ pub const SpatialGrid = struct {
         const avg = (total_boids + total_cells - 1) / total_cells;
         const clust_f = 4;
 
-        break :blk @min(64, avg * clust_f);
+        break :blk @max(64, avg * clust_f);
     };
 
-    // Fixed arrays instead of arraylists
     const Cell = struct {
         boid_indices: [MAX_BOIDS_PER_CELL]usize,
-        count: usize,
+        boid_count: usize,
 
         fn clear(self: *Cell) void {
-            self.count = 0;
+            self.boid_count = 0;
         }
 
         fn addBoidToCell(self: *Cell, boid_index: usize) void {
-            if (self.count < MAX_BOIDS_PER_CELL) {
-                self.boid_indices[self.count] = boid_index;
-                self.count += 1;
+            if (self.boid_count < MAX_BOIDS_PER_CELL) {
+                self.boid_indices[self.boid_count] = boid_index;
+                self.boid_count += 1;
             } else {
                 // FIX: Ignoring overflow, exluding additional boids from spatial grid optimization
-                std.debug.print("Not counting boid_index {d}\n", .{boid_index});
             }
         }
 
         fn getBoidIndices(self: *const Cell) []const usize {
-            return self.boid_indices[0..self.count];
+            return self.boid_indices[0..self.boid_count];
         }
     };
 
@@ -62,7 +55,7 @@ pub const SpatialGrid = struct {
             for (0..GRID_WIDTH) |x| {
                 grid.cells[y][x] = Cell{
                     .boid_indices = undefined,
-                    .count = 0,
+                    .boid_count = 0,
                 };
             }
         }
@@ -93,7 +86,6 @@ pub const SpatialGrid = struct {
         nearby_count.* = 0;
         const coords = getCellCoords(position);
 
-        // Check curr cell and 8 neighbors
         const start_y: i32 = @max(0, @as(i32, @intCast(coords.y)) - 1);
         const end_y: i32 = @min(@as(i32, @intCast(GRID_HEIGHT)) - 1, @as(i32, @intCast(coords.y)) + 1);
         const start_x: i32 = @max(0, @as(i32, @intCast(coords.x)) - 1);

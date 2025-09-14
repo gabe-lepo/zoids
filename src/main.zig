@@ -17,12 +17,13 @@ pub fn main() !void {
     rl.setTargetFPS(settings.WindowConfig.FPS);
 
     var game_state = try game.GameState.init();
+    const p_game_state = &game_state;
 
     var input_handler = input.InputHandler{};
 
     while (!rl.windowShouldClose()) {
-        input_handler.update(&game_state);
+        input_handler.update(p_game_state);
         game_state.update();
-        renderer.Renderer.drawGame(&game_state);
+        renderer.Renderer.drawGame(p_game_state);
     }
 }
