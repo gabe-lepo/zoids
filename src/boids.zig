@@ -55,25 +55,30 @@ pub const Boid = struct {
 
     // Visual props
     size: f32 = bconfig.SIZE,
-    color: rl.Color = rl.Color.white,
+    color: rl.Color,
 
     const Self = @This();
 
-    pub fn initSpecific(position: rl.Vector2) Self {
+    pub fn initSpecific(position: rl.Vector2, randColorIndex: u8) Self {
+        var randColor = utils.Colors.initFromRGB(rl.Color.white);
+        randColor.setRandom(0, 255, 255);
+
         return Self{
             .position = position,
             .velocity = vector2Random(),
             .acceleration = rl.Vector2.zero(),
+            .color = if (randColorIndex == 0) rl.Color.red else if (randColorIndex == 1) rl.Color.green else rl.Color.blue,
         };
     }
 
     pub fn initRandom() Self {
         var rng = utils.PrngHelper.getRng();
+        const randColorIndex = rng.intRangeAtMost(u8, 0, 2);
 
         return Self.initSpecific(rl.Vector2{
             .x = rng.float(f32) * settings.WindowConfig.WIDTH,
             .y = rng.float(f32) * settings.WindowConfig.HEIGHT,
-        });
+        }, randColorIndex);
     }
 
     // ----------------
