@@ -23,12 +23,12 @@ pub fn build(b: *std.Build) void {
 
     // ZLS build checking module
     const exe_check = b.addExecutable(.{
-        .name = "zigray",
+        .name = "zoids",
         .root_module = exe_mod,
     });
 
     const exe = b.addExecutable(.{
-        .name = "zigray",
+        .name = "zoids",
         .root_module = exe_mod,
     });
 
@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
-    const check_step = b.step("check", "Checking if zigray compiles");
+    const check_step = b.step("check", "Checking if zoids compiles");
     check_step.dependOn(&exe_check.step);
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);

@@ -1,8 +1,8 @@
 .{
-    .name = .zigray,
+    .name = .zoids,
     .version = "0.0.1",
 
-    .fingerprint = 0x2be27ac25e3acc25, // Changing this has security and trust implications.
+    .fingerprint = 0x999e96ac4d73e220, // Changing this has security and trust implications.
 
     .minimum_zig_version = "0.15.1",
 
