@@ -1,6 +1,6 @@
 .{
     .name = .zoids,
-    .version = "0.0.1",
+    .version = "1.0.0",
 
     .fingerprint = 0x999e96ac4d73e220, // Changing this has security and trust implications.
 
